@@ -935,8 +935,27 @@ export class WebClientService {
                         // check receiver
                         switch (receiver.type) {
                             case 'distributionList':
-                                return reject(this.$translate.instant(invalidFeatureLevelMessage, {
-                                    receiverName: receiver.displayName}));
+                                const unsupportedListMembers = [];
+                                const list = this.distributionLists.get(receiver.id);
+
+                                if (list === undefined) {
+                                    return reject();
+                                }
+                                list.members.forEach((identity: string) => {
+                                    if (identity !== this.me.id) {
+                                        // tslint:disable-next-line: no-shadowed-variable
+                                        const contact = this.contacts.get(identity);
+                                        if (contact !== undefined && contact.featureLevel < requiredFeatureLevel) {
+                                            unsupportedListMembers.push(contact.displayName);
+                                        }
+                                    }
+                                });
+
+                                if (unsupportedListMembers.length > 0) {
+                                    return reject(this.$translate.instant(invalidFeatureLevelMessage, {
+                                        receiverName: unsupportedListMembers.join(',')}));
+                                }
+                                break;
                             case 'group':
                                 const unsupportedMembers = [];
                                 const group = this.groups.get(receiver.id);
